@@ -1,0 +1,300 @@
+<html lang="en">
+ <head>
+  <meta charset="utf-8"/>
+  <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+  <title>
+   Yuca Crujiente
+  </title>
+  <script src="https://cdn.tailwindcss.com">
+  </script>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" rel="stylesheet"/>
+  <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet"/>
+  <style>
+   @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap');
+        body {
+            font-family: 'Roboto', sans-serif;
+            background: linear-gradient(180deg, #FFCC33 0%, #FF5733 100%); /* Gradasi kuning ke oren */
+        }
+        /* Tambahkan beberapa gaya khusus untuk papan skor */
+        #scoreBoard {
+            background: linear-gradient(135deg, #ffcc33, #ff5733);
+            color: white;
+            font-size: 1.5rem;
+            font-weight: bold;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            width: 100%; /* Sesuaikan lebar papan skor dengan lebar game ular */
+            max-width: 400px; /* Maksimal lebar papan skor */
+            margin: 0 auto; /* Pusatkan papan skor */
+            text-align: left; /* Rata kiri */
+            padding: 10px; /* Tambahkan padding untuk estetika */
+        }
+        /* Gaya khusus untuk tombol Mulai */
+        #startGame {
+            font-family: 'Roboto', sans-serif;
+        }
+        /* Gaya khusus untuk kontrol sentuh */
+        .touch-control {
+            background-color: #ff5733;
+            color: white;
+            font-size: 1.5rem;
+            font-weight: bold;
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 5px;
+        }
+  </style>
+ </head>
+ <body class="flex items-center justify-center min-h-screen">
+  <div class="text-center p-8 max-w-lg mx-auto">
+   <!-- Tambahkan logo produk -->
+   <div class="mb-4">
+    <img src="yuca logo.png" alt="Logo Produk" class="mx-auto" style="width: 250px; height: auto;">
+   </div>
+   <div class="relative">
+    <h1 class="text-5xl font-bold text-white drop-shadow-lg">
+     YUCA CRUJIENTE
+    </h1>
+    <h2 class="text-3xl font-bold text-white bg-red-600 inline-block px-4 py-2 mt-2">
+     SINGKONG KRISPI
+    </h2>
+    <div class="absolute top-0 right-0 text-white text-5xl">
+     !
+    </div>
+   <div class="mt-8 text-left text-white">
+    <h3 class="text-xl font-bold">
+     Yuca Game
+    </h3>
+    <div class="mt-4">
+     <canvas id="snakeGame" width="400" height="400" style="background-color: #000;"></canvas>
+    </div>
+    <!-- Tambahkan papan skor -->
+    <div class="mt-4 d-flex justify-content-center">
+     <div id="scoreBoard" class="alert text-center" role="alert">
+      Skor: <span id="score">0</span>
+     </div>
+    </div>
+    <!-- Tambahkan tombol Start -->
+    <div class="mt-4">
+     <button id="startGame" class="btn btn-success btn-lg font-bold" style="font-family: 'Roboto', sans-serif;">
+      <i class="fas fa-play"></i> Mulai ga nih?
+     </button>
+    </div>
+    <!-- Tambahkan modal untuk video -->
+    <div class="modal fade" id="rewardModal" tabindex="-1" role="dialog" aria-labelledby="rewardModalLabel" aria-hidden="true">
+     <div class="modal-dialog" role="document">
+      <div class="modal-content">
+       <div class="modal-header">
+        <h5 class="modal-title" id="rewardModalLabel">Selamat! Anda Mendapatkan Hadiah!</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+         <span aria-hidden="true">&times;</span>
+        </button>
+       </div>
+       <div class="modal-body">
+        <video id="rewardVideo" width="100%">
+         <source src="winner.mp4" type="video/mp4">
+         Browser Anda tidak mendukung video tag.
+        </video>
+        <video id="crashVideo" width="100%" style="display: none;">
+         <source src="loser.mp4" type="video/mp4">
+         Browser Anda tidak mendukung video tag.
+        </video>
+       </div>
+      </div>
+     </div>
+    </div>
+    <script>
+     document.addEventListener("DOMContentLoaded", function() {
+         const canvas = document.getElementById("snakeGame");
+         const ctx = canvas.getContext("2d");
+         const box = 20;
+         let snake = [];
+         let food;
+         let score;
+         let d;
+         let game;
+
+         // Tambahkan elemen gambar untuk ular
+         const snakeImg = new Image();
+         snakeImg.src = 'yuca logo.png'; // Ganti dengan path gambar ular Anda
+
+         // Tambahkan elemen gambar untuk makanan (uang)
+         const foodImg = new Image();
+         foodImg.src = 'money1.png'; // Ganti dengan path gambar uang Anda
+
+         document.addEventListener("keydown", direction);
+         function direction(event) {
+             if (event.keyCode == 37 && d != "RIGHT") {
+                 d = "LEFT";
+             } else if (event.keyCode == 38 && d != "DOWN") {
+                 d = "UP";
+             } else if (event.keyCode == 39 && d != "LEFT") {
+                 d = "RIGHT";
+             } else if (event.keyCode == 40 && d != "UP") {
+                 d = "DOWN";
+             }
+         }
+         function collision(newHead, array) {
+             for (let i = 0; i < array.length; i++) {
+                 if (newHead.x == array[i].x && newHead.y == array[i].y) {
+                     return true;
+                 }
+             }
+             return false;
+         }
+         function draw() {
+             ctx.fillStyle = "#000";
+             ctx.fillRect(0, 0, canvas.width, canvas.height);
+             for (let i = 0; i < snake.length; i++) {
+                 // Gunakan gambar ular saat menggambar ular
+                 ctx.drawImage(snakeImg, snake[i].x, snake[i].y, box, box);
+             }
+             // Gunakan gambar uang saat menggambar makanan
+             ctx.drawImage(foodImg, food.x, food.y, box, box);
+             let snakeX = snake[0].x;
+             let snakeY = snake[0].y;
+             if (d == "LEFT") snakeX -= box;
+             if (d == "UP") snakeY -= box;
+             if (d == "RIGHT") snakeX += box;
+             if (d == "DOWN") snakeY += box;
+             if (snakeX == food.x && snakeY == food.y) {
+                 score++;
+                 food = {
+                     x: Math.floor(Math.random() * 19 + 1) * box,
+                     y: Math.floor(Math.random() * 19 + 1) * box
+                 };
+                 // Tampilkan modal video jika skor mencapai 5
+                 if (score === 5) {
+                     $('#rewardModal').modal('show');
+                     document.getElementById('rewardVideo').style.display = 'block';
+                     document.getElementById('crashVideo').style.display = 'none';
+                     document.getElementById('rewardVideo').play();
+                 }
+             } else {
+                 snake.pop();
+             }
+             let newHead = { x: snakeX, y: snakeY };
+             if (snakeX < 0 || snakeY < 0 || snakeX >= canvas.width || snakeY >= canvas.height || collision(newHead, snake)) {
+                 clearInterval(game);
+                 // Tampilkan modal video saat menabrak tembok
+                 $('#rewardModal').modal('show');
+                 document.getElementById('rewardVideo').style.display = 'none';
+                 document.getElementById('crashVideo').style.display = 'block';
+                 document.getElementById('crashVideo').play();
+             }
+             snake.unshift(newHead);
+             // Update skor di papan skor
+             document.getElementById("score").innerText = score;
+         }
+
+         // Fungsi untuk memulai permainan
+         function startGame() {
+             snake = [];
+             snake[0] = { x: 9 * box, y: 10 * box };
+             food = {
+                 x: Math.floor(Math.random() * 19 + 1) * box,
+                 y: Math.floor(Math.random() * 19 + 1) * box
+             };
+             score = 0;
+             d = null;
+             if (game) clearInterval(game);
+             game = setInterval(draw, 100);
+
+             // Putar musik saat game dimulai
+             const backgroundMusic = document.getElementById("backgroundMusic");
+             backgroundMusic.play();
+         }
+
+         // Event listener untuk tombol Start
+         document.getElementById("startGame").addEventListener("click", startGame);
+
+         // Event listener untuk kontrol sentuh
+         document.getElementById("left").addEventListener("click", function() {
+             if (d != "RIGHT") d = "LEFT";
+         });
+         document.getElementById("up").addEventListener("click", function() {
+             if (d != "DOWN") d = "UP";
+         });
+         document.getElementById("down").addEventListener("click", function() {
+             if (d != "UP") d = "DOWN";
+         });
+         document.getElementById("right").addEventListener("click", function() {
+             if (d != "LEFT") d = "RIGHT";
+         });
+
+         // Putar musik saat halaman dimuat
+         const backgroundMusic = document.getElementById("backgroundMusic");
+         backgroundMusic.play().catch(function() {
+             // Jika pemutaran otomatis diblokir, tunggu interaksi pengguna
+             document.getElementById("startGame").addEventListener("click", function() {
+                 backgroundMusic.play();
+             });
+         });
+     });
+    </script>
+   </div>
+   </div>
+   <div class="mt-8 text-left text-white">
+    <h3 class="text-xl font-bold text-left">
+        APASIH SINGKONG ITU?
+    </h3>
+    <p class="mt-2 text-left">
+     Ubi kayu, atau disebut juga singkong, kaspe, ketela pohon, ubi sampat atau ubi prancis, adalah perdu tropis dan subtropis tahunan dari suku Euphorbiaceae. Umbinya dikenal luas sebagai makanan pokok penghasil karbohidrat dan daunnya sebagai sayuran.
+    </p>
+   </div>
+   <div class="mt-8 text-left">
+    <img alt="Ilustrasi akar singkong" class="ml-0 outline outline-4 outline-white shadow-lg" height="200" src="singkong.jpg" width="300"/>
+   </div>
+   <div class="mt-8 text-left text-white">
+    <h3 class="text-xl font-bold">
+     MANFAAT SINGKONG
+    </h3
+    <ul class="mt-2 space-y-2">
+     <li class="flex items-center">
+      <span class="text-red-600 mr-2">
+       •
+      </span>
+      Sumber energi
+     </li>
+     <li class="flex items-center">
+      <span class="text-red-600 mr-2">
+       •
+      </span>
+      Obat alami asam lambung
+     </li>
+     <li class="flex items-center">
+      <span class="text-red-600 mr-2">
+       •
+      </span>
+      Menurunkan risiko sindrom metabolik
+     </li>
+    </ul>
+   </div>
+   <div class="mt-8 text-white">
+    <p>
+     Mari bersama-sama hentikan gratifikasi dan bangun Indonesia yang bersih dan berintegritas!
+    </p>
+   </div>
+   <!-- Tambahkan kontrol sentuh -->
+   <div class="fixed bottom-0 left-0 right-0 flex justify-center mb-4">
+    <button id="left" class="touch-control"><i class="fas fa-arrow-left"></i></button>
+    <button id="up" class="touch-control"><i class="fas fa-arrow-up"></i></button>
+    <button id="down" class="touch-control"><i class="fas fa-arrow-down"></i></button>
+    <button id="right" class="touch-control"><i class="fas fa-arrow-right"></i></button>
+   </div>
+  </div>
+  <!-- Tambahkan elemen audio untuk musik loop -->
+  <audio id="backgroundMusic" loop autoplay>
+      <source src="223 AM.mp3" type="audio/mp3">
+      Browser Anda tidak mendukung audio tag.
+  </audio>
+  <!-- Tambahkan script Bootstrap untuk modal -->
+  <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.2/dist/umd/popper.min.js"></script>
+  <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+ </body>
+</html>
